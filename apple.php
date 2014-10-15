@@ -22,6 +22,7 @@ class Apple extends Component {
     protected static $_conf = array(
         'actionDir' => '',
         'defaultAction' => '/index',
+        'actionPrefix' => 'action_',
         'preAction' => '',
         'preActionFile' => '', // the filename to include before calling preAction
     );
@@ -89,8 +90,9 @@ class Apple extends Component {
                         $dirname = '';
                 }
             }
-            if(function_exists($action_function)) {
-                $rf = new ReflectionFunction($action_function);
+            $prefixed_action_function = $this->conf['actionPrefix'].$action_function;
+            if(function_exists($func = $prefixed_action_function) || function_exists($func = $action_function)) {
+                $rf = new ReflectionFunction($func);
                 if($rf->isInternal()) {
                     throw new InvalidActionException('Cannot invoke PHP built-in function by web app action');
                 }
