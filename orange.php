@@ -712,6 +712,8 @@ final class OrangeIterator implements \Iterator {
  * @property-read Table $schema
  * @property-read Query $query
  * @property-read string $modelName
+ * @property-read bool $isNewRecord
+ * @property-read mixed $oldPK
  * @property-read string $tableName
  * @property-read array $properties
  * @property-read array $modified
@@ -723,6 +725,17 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
     const INSERT_IGNORE=1;
     const INSERT_UPDATE=2;
     const INSERT_REPLACE=3;
+
+    /**
+     * @var bool
+     */
+    protected $_isNewRecord=true;
+
+    /**
+     * @var mixed
+     */
+    protected $_oldPK=null;
+
     /**
      * @var array $_properties
      */
@@ -905,10 +918,9 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
     }
 
     public function setup($properties) {
-        /**
-         * @var Column $column
-         */
+        $pk = $this->schema->keys['PK'];
         foreach($this->getSchema()->getColumns() as $column) {
+            /** @var Column $column */
             if(isset($properties[$column->name])) {
                 if(in_array($column->type, array('bigint', 'int', 'mediumint', 'smallint', 'tinyint')))
                     $this->_properties[$column->name] = intval($properties[$column->name]);
@@ -916,9 +928,13 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
                     $this->_properties[$column->name] = doubleval($properties[$column->name]);
                 else
                     $this->_properties[$column->name] = $properties[$column->name];
+            } else if(array_key_exists($column->name, $properties)) {
+                $this->_properties[$column->name] = null;
             }
         }
         $this->_modified = array();
+        $this->_oldPK = isset($this->_properties[$pk])?$this->_properties[$pk]:null;
+        $this->_isNewRecord = !isset($this->_oldPK);
         return $this;
     }
 
@@ -981,6 +997,20 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
      */
     public function getModified() {
         return $this->_modified;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getIsNewRecord() {
+        return $this->_isNewRecord;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getOldPK() {
+        return $this->_oldPK;
     }
 
     public function getRelations() {
@@ -1173,8 +1203,6 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
      * @throws OrangeException
      */
     private function _propertySet($name, $value) {
-        if ($name == $this->schema->keys['PK'])
-            throw new OrangeException("Property $name is the Primary Key of the table, you cannot change it unless using setup method");
         $this->_properties[$name] = $value;
         $this->_modified[$name] = $value;
     }
@@ -1206,6 +1234,9 @@ final class FreshOrange {
         return self::$singleton;
     }
 
+    /**
+     * @var Orange
+     */
     private $orange = null;
 
     private function __construct() {}
@@ -1289,7 +1320,7 @@ final class FreshOrange {
 
     public function save($scenario=Orange::INSERT_NORMAL) {
         $pk = $this->orange->schema->keys['PK'];
-        if(empty($this->orange->properties[$pk])) {
+        if($this->orange->isNewRecord) {
             $id = 0;
             switch($scenario) {
                 case Orange::INSERT_NORMAL:
@@ -1300,6 +1331,8 @@ final class FreshOrange {
                         ->query()
                     ;
                     $id = $this->orange->builder->query->lastInsertId;
+                    if(empty($id) && !empty($this->orange->properties[$pk]))
+                        $id = $this->orange->properties[$pk];
                     break;
                 case Orange::INSERT_IGNORE:
                     $this->orange->builder
@@ -1330,11 +1363,10 @@ final class FreshOrange {
             $this->orange->builder
                 ->update($this->orange->tableName)
                 ->set($this->orange->modified)
-                ->where("`$pk`=:id", array(':id'=> $this->orange->properties[$pk]))
+                ->where("`$pk`=:_table_pk", array(':_table_pk'=> $this->orange->oldPK))
                 ->query();
             $this->orange->modified = array();
         }
-        $this->orange->getModified();
         return $this->orange;
     }
 
@@ -1513,18 +1545,25 @@ final class MoldyOrange extends Component {
             }
         }
 
-        $this->_orange->noCache()->load($pk);
-        $this->cache()->set($key, $this->_orange, $this->_duration);
-        return $this->_orange;
+        if($r = $this->_orange->noCache()->load($pk)) {
+            $this->cache()->set($key, $this->_orange, $this->_duration);
+            return $this->_orange;
+        }
+        return null;
     }
 
     public function save($scenario=Orange::INSERT_NORMAL) {
+        $oldPk = $this->_orange->oldPK;
         $pkName = $this->_orange->schema->keys['PK'];
         $this->_orange->noCache()->save($scenario);
         $pk = $this->_orange->properties[$pkName];
         $key = is_null($this->_key) ?
             md5("load|{$this->_orange->tableName}|{$pk}"): $this->_key;
         $this->cache()->set($key, $this->_orange, $this->_duration);
+        if(is_null($this->_key) && $oldPk != $pk) {
+            $oldKey = md5("load|{$this->_orange->tableName}|{$oldPk}");
+            $this->cache()->remove($oldKey);
+        }
         return $this->_orange;
     }
 
