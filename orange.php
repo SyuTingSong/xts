@@ -1043,10 +1043,13 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
         if($name == 'conf')
             return static::$_conf;
         $getter = Toolkit::toCamelCase("get $name");
+        $snakeName = Toolkit::to_snake_case($name);
         if(method_exists($this, $getter)) {
             return $this->$getter();
         } else if(array_key_exists($name, $this->_properties)) {
             return $this->_properties[$name];
+        } else if(array_key_exists($snakeName, $this->_properties)) {
+            return $this->_properties[$snakeName];
         } else if(isset($this->relations[$name])
             && !$this->relations[$name] instanceof HasManyRelation) { // Use method to load HasManyRelation
             if(!array_key_exists($name, $this->_relationObjects))
