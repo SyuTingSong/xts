@@ -709,18 +709,18 @@ final class OrangeIterator implements \Iterator {
 /**
  * Class Orange
  * @package xts
+ * @property array $properties
  * @property-read Table $schema
  * @property-read Query $query
  * @property-read string $modelName
  * @property-read bool $isNewRecord
  * @property-read mixed $oldPK
  * @property-read string $tableName
- * @property-read array $properties
  * @property-read array $modified
  * @property-read array $relations
  * @property-read SqlBuilder $builder
  */
-class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAggregate {
+class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAggregate, \JsonSerializable {
     const INSERT_NORMAL=0;
     const INSERT_IGNORE=1;
     const INSERT_UPDATE=2;
@@ -992,6 +992,12 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
         return $this->_properties;
     }
 
+    public function setProperties($array) {
+        foreach ($array as $key => $value) {
+            $this->_propertySet($key, $value);
+        }
+    }
+
     /**
      * @return array
      */
@@ -1063,7 +1069,7 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
         $setter = Toolkit::toCamelCase("set $name");
         if(method_exists($this, $setter)) {
             $this->$setter($value);
-        } else if(array_key_exists($name, $this->_properties) && $this->_properties[$name] !== $value) {
+        } else {
             $this->_propertySet($name, $value);
         }
     }
@@ -1192,22 +1198,29 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
         foreach($this->_properties as $key => $value) {
             if($key == $this->schema->keys['PK'])
                 continue;
-            if(array_key_exists($key, $array) && $value !== $array[$key]) {
-                $this->_propertySet($key, $array[$key]);
-            }
+            $this->_propertySet($key, $array[$key]);
         }
 
         return $this;
     }
 
     /**
-     * @param $name
-     * @param $value
+     * @param string $name The name of the property to be set
+     * @param mixed $value The value of the property
+     * @return int|bool Returns the number of changed properties, or false if $name is invalid
      * @throws OrangeException
      */
     private function _propertySet($name, $value) {
-        $this->_properties[$name] = $value;
-        $this->_modified[$name] = $value;
+        if(array_key_exists($name, $this->_properties)) {
+            if($this->_properties[$name] !== $value) {
+                $this->_properties[$name] = $value;
+                $this->_modified[$name] = $value;
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1218,7 +1231,26 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
      * <b>Traversable</b>
      */
     public function getIterator() {
-        return new OrangeIterator(array_keys($this->_properties), $this);
+        return new OrangeIterator($this->getExportProperties(), $this);
+    }
+
+    protected function getExportProperties() {
+        return array_keys($this->_properties);
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.4.0)<br/>
+     * Specify data which should be serialized to JSON
+     * @link http://php.net/manual/en/jsonserializable.jsonserialize.php
+     * @return mixed data which can be serialized by <b>json_encode</b>,
+     * which is a value of any type other than a resource.
+     */
+    public function jsonSerialize() {
+        $jsonArray = array();
+        foreach ($this as $key => $value) {
+            $jsonArray[$key] = $value;
+        }
+        return $jsonArray;
     }
 }
 
