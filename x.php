@@ -47,6 +47,7 @@ abstract class XComponentFactory extends Component {
                 'conf' => array(
                     'actionDir' => 'action',
                     'defaultAction' => '/index',
+                    'actionPrefix' => 'action_',
                     'preAction' => '',
                     'preActionFile' => '', // the filename to include before calling preAction
                 ),
