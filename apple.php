@@ -160,16 +160,8 @@ class Apple extends Component {
     }
 
     private function jsonOutput($ok, $msg, $data, $goto, $status) {
-        if($ok) {
-            if(empty($status) && !empty($goto))
-                $status = 302;
-            if(!empty($status))
-                header("Status: $status");
-        } else {
-            if(empty($status))
-                $status = empty($goto)?500:302;
+        if($status)
             header("Status: $status");
-        }
         $res = array('OK' => $ok);
         $res['message'] = $msg;
         if(isset($data))
