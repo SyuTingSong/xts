@@ -160,6 +160,7 @@ class Apple extends Component {
     }
 
     private function jsonOutput($ok, $msg, $data, $goto, $status) {
+        header('Content-Type: application/json');
         if($status)
             header("Status: $status");
         $res = array('OK' => $ok);
