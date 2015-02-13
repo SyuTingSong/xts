@@ -1210,7 +1210,7 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
      * @return int|bool Returns the number of changed properties, or false if $name is invalid
      * @throws OrangeException
      */
-    private function _propertySet($name, $value) {
+    protected function _propertySet($name, $value) {
         if(array_key_exists($name, $this->_properties)) {
             if($this->_properties[$name] !== $value) {
                 $this->_properties[$name] = $value;
