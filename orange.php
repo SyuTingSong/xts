@@ -1198,7 +1198,8 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
         foreach($this->_properties as $key => $value) {
             if($key == $this->schema->keys['PK'])
                 continue;
-            $this->_propertySet($key, $array[$key]);
+            if(array_key_exists($key, $array))
+                $this->_propertySet($key, $array[$key]);
         }
 
         return $this;
