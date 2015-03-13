@@ -1191,14 +1191,14 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
      * @return $this
      */
     public function assign($array) {
-        if(array_key_exists($this->schema->keys['PK'], $array)) {
+        if(isset($array[$this->schema->keys['PK']])) {
             $this->load($array[$this->schema->keys['PK']]);
         }
 
         foreach($this->_properties as $key => $value) {
             if($key == $this->schema->keys['PK'])
                 continue;
-            if(array_key_exists($key, $array))
+            if(isset($array[$key]))
                 $this->_propertySet($key, $array[$key]);
         }
 
