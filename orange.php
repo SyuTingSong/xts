@@ -917,7 +917,7 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
             $this->noCache()->remove($id);
     }
 
-    public function setup($properties) {
+    private function setupOne($properties) {
         $pk = $this->schema->keys['PK'];
         foreach($this->getSchema()->getColumns() as $column) {
             /** @var Column $column */
@@ -936,6 +936,28 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
         $this->_oldPK = isset($this->_properties[$pk])?$this->_properties[$pk]:null;
         $this->_isNewRecord = !isset($this->_oldPK);
         return $this;
+    }
+
+    public function setup($properties) {
+        if (is_array(reset($properties))) {
+            $oranges = array();
+            $pk = $this->schema->keys['PK'];
+            foreach($properties as $p) {
+                $o = clone $this;
+                $o->setupOne($p);
+                $oranges[$o->$pk] = $o;
+            }
+            return $oranges;
+        } else {
+            return $this->setupOne($properties);
+        }
+    }
+
+    public function sql($sql, $params=array()) {
+        if($this->conf['enableCacheByDefault'])
+            return $this->cache()->sql($sql, $params);
+        else
+            return $this->noCache()->sql($sql, $params);
     }
 
     /**
@@ -1418,6 +1440,18 @@ final class FreshOrange {
             ->where("`$pk`=:id", array(':id' => $id,))
             ->query();
     }
+
+    public function sql($sql, $params=array()) {
+        $result = $this->orange->query->query($sql, $params);
+        $items = array();
+        $pk = $this->orange->schema->keys['PK'];
+        foreach($result as $row) {
+            $item = clone $this->orange;
+            $item->setup($row);
+            $items[$item->$pk] = $item;
+        }
+        return $items;
+    }
 }
 
 final class MoldyOrange extends Component {
@@ -1538,6 +1572,27 @@ final class MoldyOrange extends Component {
         $ok = array_keys($oranges);
         $this->cache()->set($key, $ok, $this->_duration);
         return $oranges;
+    }
+
+    public function sql($sql, $params=array()) {
+        $key = is_null($this->_key) ?
+            md5("sql|{$this->_orange->tableName}|{$sql}|".serialize($params)) : $this->_key;
+        $r = $this->cache()->get($key);
+        $callback = $this->_callback;
+        if(is_array($r)) {
+            $oranges = array();
+            foreach($r as $id) {
+                $orange = clone $this->_orange;
+                $orange->cache($this->_duration)->load($id);
+                if($orange)
+                    $oranges[$id] = $orange;
+            }
+            if(is_null($callback) || $callback($oranges) !== false)
+                return $oranges;
+        }
+        $oranges = $this->_orange->noCache()->sql($sql, $params);
+        $ok = array_keys($oranges);
+        $this->cache()->set($key, $ok, $this->_duration);
     }
 
     /**
