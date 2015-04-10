@@ -222,6 +222,8 @@ class CCache extends Cache {
             'data' => $value,
         );
         $phpCode = '<?php return '.Toolkit::compile($content).';';
+        if (function_exists('opcache_invalidate'))
+            opcache_invalidate($file, true);
         file_put_contents($file, $phpCode, LOCK_EX);
     }
 

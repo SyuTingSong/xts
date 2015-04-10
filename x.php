@@ -138,6 +138,13 @@ abstract class XComponentFactory extends Component {
         Orange::conf(static::$_conf['component']['orange']['conf']);
     }
 
+    public static function log($msg, $level=X_LOG_DEBUG, $category='app') {
+        Toolkit::log($msg, $level, $category);
+    }
+    public static function trace($msg) {
+        Toolkit::trace($msg, 2);
+    }
+
     /**
      * @param string $type
      * @return \xts\Orange

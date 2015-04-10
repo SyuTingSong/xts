@@ -213,14 +213,21 @@ abstract class Toolkit {
                     mkdir(X_RUNTIME_ROOT, 0777, true);
                 self::$logFile = fopen(X_RUNTIME_ROOT.'/app.log', 'a+');
             }
-            fprintf(self::$logFile, "[%s][%s][%s]%s\n", date('c'), $logLevelName[$logLevel], $category, $msg);
+            if (is_callable($msg)) {
+                $logMessage = call_user_func($msg);
+            } else {
+                $logMessage = $msg;
+            }
+            fprintf(self::$logFile, "[%s][%s][%s]%s\n", date('c'), $logLevelName[$logLevel], $category, $logMessage);
         }
     }
-    public static function trace($msg) {
-        $trace = debug_backtrace();
-        $class = isset($trace[1]['class'])?$trace[1]['class']:'NoClass';
-        $func = $trace[1]['function'];
-        self::log($msg, X_LOG_DEBUG, "$class::$func");
+    public static function trace($msg, $traceIndex=1) {
+        if (X_LOG_DEBUG >= X_LOG_LEVEL) {
+            $trace = debug_backtrace();
+            $class = isset($trace[$traceIndex]['class'])?$trace[$traceIndex]['class']:'FUNC';
+            $func = $trace[$traceIndex]['function'];
+            self::log($msg, X_LOG_DEBUG, "$class::$func");
+        }
     }
 
     /**
