@@ -716,7 +716,7 @@ final class OrangeIterator implements \Iterator {
  * @property-read bool $isNewRecord
  * @property-read mixed $oldPK
  * @property-read string $tableName
- * @property-read array $modified
+ * @property array $modified
  * @property-read array $relations
  * @property-read SqlBuilder $builder
  */
@@ -1025,6 +1025,13 @@ class Orange extends Component implements \ArrayAccess, IAssignable, \IteratorAg
      */
     public function getModified() {
         return $this->_modified;
+    }
+
+    /**
+     * @param array $mod
+     */
+    public function setModified($mod) {
+        $this->_modified = $mod;
     }
 
     /**
