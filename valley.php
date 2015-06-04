@@ -13,10 +13,10 @@ namespace xts;
  * Class Valley
  * @package xts
  *
- * @property-read bool $isValid
- * @property-read bool $isEmpty
- * @property-read array $messages
- * @property-read mixed $safeVar
+ * @property bool $isValid
+ * @property bool $isEmpty
+ * @property array $messages
+ * @property mixed $safeVar
  */
 class Valley extends Component {
     protected static $_conf = array(
