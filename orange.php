@@ -1600,6 +1600,7 @@ final class MoldyOrange extends Component {
         $oranges = $this->_orange->noCache()->sql($sql, $params);
         $ok = array_keys($oranges);
         $this->cache()->set($key, $ok, $this->_duration);
+        return $oranges;
     }
 
     /**
@@ -1665,7 +1666,10 @@ final class MoldyOrange extends Component {
         return $this->_orange;
     }
 
-    public function remove($id) {
+    public function remove($id=null) {
+        if (is_null($id)) {
+            $id = $this->_orange->properties[$this->_orange->schema->keys['PK']];
+        }
         $pkName = $this->_orange->schema->keys['PK'];
         $pk = $this->_orange->properties[$pkName];
         $key = is_null($this->_key) ?
